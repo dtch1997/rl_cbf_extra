@@ -167,7 +167,7 @@ def make_env(env_id, seed, idx, capture_video, run_name):
 
 # ALGO LOGIC: initialize agent here:
 class QNetwork(nn.Module):
-    def __init__(self, env):
+    def __init__(self, env, bounded: bool = False, gamma: float = 0.99):
         super().__init__()
         self.fc1 = nn.Linear(
             np.array(env.single_observation_space.shape).prod()
@@ -176,12 +176,17 @@ class QNetwork(nn.Module):
         )
         self.fc2 = nn.Linear(256, 256)
         self.fc3 = nn.Linear(256, 1)
+        self.bounded = bounded
+        self.gamma = gamma
 
     def forward(self, x, a):
         x = torch.cat([x, a], 1)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
+        if self.bounded:
+            # Map into range [0, 1 / (1 - gamma)]
+            x = torch.sigmoid(x) / (1 - self.gamma)
         return x
 
 
@@ -258,10 +263,10 @@ if __name__ == "__main__":
     ), "only continuous action space is supported"
 
     actor = Actor(envs).to(device)
-    qf1 = QNetwork(envs).to(device)
-    qf2 = QNetwork(envs).to(device)
-    qf1_target = QNetwork(envs).to(device)
-    qf2_target = QNetwork(envs).to(device)
+    qf1 = QNetwork(envs, bounded=args.bounded).to(device)
+    qf2 = QNetwork(envs, bounded=args.bounded).to(device)
+    qf1_target = QNetwork(envs, bounded=args.bounded).to(device)
+    qf2_target = QNetwork(envs, bounded=args.bounded).to(device)
     target_actor = Actor(envs).to(device)
     target_actor.load_state_dict(actor.state_dict())
     qf1_target.load_state_dict(qf1.state_dict())
