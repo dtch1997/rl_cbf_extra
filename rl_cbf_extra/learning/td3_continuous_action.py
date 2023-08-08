@@ -424,5 +424,16 @@ if __name__ == "__main__":
                     global_step,
                 )
 
+        if args.track:
+            # make sure to tune `CHECKPOINT_FREQUENCY`
+            # so models are not saved too frequently
+            if global_step % 10000 == 0:
+                torch.save(actor.state_dict(), f"{wandb.run.dir}/actor.pt")
+                torch.save(qf1.state_dict(), f"{wandb.run.dir}/qf1.pt")
+                torch.save(qf2.state_dict(), f"{wandb.run.dir}/qf2.pt")
+                wandb.save(f"{wandb.run.dir}/actor.pt")
+                wandb.save(f"{wandb.run.dir}/qf1.pt")
+                wandb.save(f"{wandb.run.dir}/qf2.pt")
+
     envs.close()
     writer.close()
