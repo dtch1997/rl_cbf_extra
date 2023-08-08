@@ -143,6 +143,8 @@ def parse_args():
 def make_env(env_id, seed, idx, capture_video, run_name):
     def thunk():
         env = gym.make(env_id)
+        env = SafetyWalker2dEnv(env, override_reward=True)
+        env = gym.wrappers.TimeLimit(env, max_episode_steps=1000)
         env = gym.wrappers.RecordEpisodeStatistics(env)
         if capture_video:
             if idx == 0:
@@ -238,6 +240,10 @@ if __name__ == "__main__":
     envs = gym.vector.SyncVectorEnv(
         [make_env(args.env_id, args.seed, 0, args.capture_video, run_name)]
     )
+    # Create dummy env for sampling states
+    _env = gym.make(args.env_id)
+    _env = SafetyWalker2dEnv(_env, override_reward=True)
+    _env = gym.wrappers.TimeLimit(_env, max_episode_steps=1000)
     assert isinstance(
         envs.single_action_space, gym.spaces.Box
     ), "only continuous action space is supported"
