@@ -105,6 +105,8 @@ def parse_args():
         help="if toggled, this experiment will be tracked with Weights and Biases")
     parser.add_argument("--wandb-project-name", type=str, default="cleanRL",
         help="the wandb's project name")
+    parser.add_argument("--wandb-group", type=str, default=None,
+        help="the wandb's group name")
     parser.add_argument("--wandb-entity", type=str, default=None,
         help="the entity (team) of wandb's project")
     parser.add_argument("--capture-video", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
@@ -214,6 +216,7 @@ if __name__ == "__main__":
 
         wandb.init(
             project=args.wandb_project_name,
+            group=args.wandb_group,
             entity=args.wandb_entity,
             sync_tensorboard=True,
             config=vars(args),
