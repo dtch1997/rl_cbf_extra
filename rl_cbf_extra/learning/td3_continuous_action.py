@@ -142,6 +142,8 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         help="the frequency of training policy (delayed)")
     parser.add_argument("--noise-clip", type=float, default=0.5,
         help="noise clip parameter of the Target Policy Smoothing Regularization")
+    parser.add_argument("--eval-frequency", type=int, default=10000,
+        help="the frequency of evaluating the policy")
     # RL-CBF specific arguments
     parser.add_argument("--bounded", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="if toggled, the CBF is bounded")
