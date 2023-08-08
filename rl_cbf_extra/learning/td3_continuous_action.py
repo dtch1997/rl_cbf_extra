@@ -138,6 +138,11 @@ def parse_args():
         help="the frequency of training policy (delayed)")
     parser.add_argument("--noise-clip", type=float, default=0.5,
         help="noise clip parameter of the Target Policy Smoothing Regularization")
+    # RL-CBF specific arguments
+    parser.add_argument("--bounded", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
+        help="if toggled, the CBF is bounded")
+    parser.add_argument("--supervised", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
+        help="if toggled, the CBF is supervised")
     args = parser.parse_args()
     # fmt: on
     return args
@@ -352,6 +357,27 @@ if __name__ == "__main__":
             qf_loss.backward()
             q_optimizer.step()
 
+            if args.supervised:
+                # Apply supervised loss
+                states = _env.sample_states(args.batch_size)
+                is_unsafe = _env.is_unsafe(states).squeeze()
+                unsafe_states = states[is_unsafe == 1].astype(np.float32)
+                unsafe_states = (
+                    torch.from_numpy(unsafe_states).to(device).to(torch.float32)
+                )
+                actions = actor(unsafe_states)
+                unsafe_qpred_1 = qf1(unsafe_states, actions)
+                unsafe_qpred_2 = qf2(unsafe_states, actions)
+                unsafe_val_pred = torch.min(unsafe_qpred_1, unsafe_qpred_2)
+
+                unsafe_val_true = 0 * torch.ones(
+                    unsafe_val_pred.shape, device=device, dtype=torch.float32
+                )
+                unsafe_loss = F.mse_loss(unsafe_val_pred, unsafe_val_true)
+                q_optimizer.zero_grad()
+                unsafe_loss.backward()
+                q_optimizer.step()
+
             if global_step % args.policy_frequency == 0:
                 actor_loss = -qf1(data.observations, actor(data.observations)).mean()
                 actor_optimizer.zero_grad()
@@ -389,6 +415,8 @@ if __name__ == "__main__":
                 writer.add_scalar("losses/qf2_loss", qf2_loss.item(), global_step)
                 writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, global_step)
                 writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
+                if args.supervised:
+                    writer.add_scalar("losses/unsafe_loss", unsafe_loss, global_step)
                 print("SPS:", int(global_step / (time.time() - start_time)))
                 writer.add_scalar(
                     "charts/SPS",
