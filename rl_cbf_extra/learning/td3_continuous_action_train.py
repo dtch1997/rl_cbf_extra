@@ -214,7 +214,12 @@ if __name__ == "__main__":
             if global_step % args.eval_frequency == 0:
                 # ALGO LOGIC: evaluate agent performance here.
                 results_df = evaluate_constrain(
-                    actor, qf1, qf2, envs, safety_threshold=0.5 / (1 - args.gamma)
+                    actor,
+                    qf1,
+                    qf2,
+                    _env,
+                    safety_threshold=0.5 / (1 - args.gamma),
+                    device=device,
                 )
                 writer.add_scalar(
                     "eval/mean_constrained_ep_len", results_df.episode_length.mean()

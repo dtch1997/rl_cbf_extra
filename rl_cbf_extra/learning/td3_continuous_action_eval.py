@@ -13,6 +13,7 @@ def evaluate_constrain_episode(
     env: gym.Env,
     safety_threshold: float = 0,
     render: bool = False,
+    device: str = "cpu",
 ):
     """Evaluate model on environment for 1 episode"""
 
@@ -27,13 +28,13 @@ def evaluate_constrain_episode(
 
         # Take a random action
         action = env.action_space.sample()
-        next_qf1_value = qf1.predict(state, action).item()
-        next_qf2_value = qf2.predict(state, action).item()
+        next_qf1_value = qf1.predict(state, action, device=device).item()
+        next_qf2_value = qf2.predict(state, action, device=device).item()
         next_barrier_value = min(next_qf1_value, next_qf2_value)
 
         if next_barrier_value < safety_threshold:
             # Choose the action with the highest Q-value
-            action = actor.predict(state)
+            action = actor.predict(state, device=device)
 
         next_state, _, done, _ = env.step(action)
         state = next_state
@@ -49,6 +50,7 @@ def evaluate_constrain(
     env: gym.Env,
     safety_threshold: float = 0,
     num_rollouts: int = 10,
+    device: str = "cpu",
 ) -> pd.DataFrame:
     """Return pd.DataFrame of rollout data
 
@@ -57,7 +59,7 @@ def evaluate_constrain(
     rows = []
     for episode_idx in range(num_rollouts):
         episode_length = evaluate_constrain_episode(
-            actor, qf1, qf2, env, safety_threshold
+            actor, qf1, qf2, env, safety_threshold, device=device
         )
         rows.append(
             {
