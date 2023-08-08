@@ -7,8 +7,8 @@ def load_constraint(save_dir, args):
         [make_env(args.env_id, args.seed, 0, args.capture_video, "eval")]
     )
     actor = Actor(envs)
-    qf1 = QNetwork(envs, bounded=args.bounded)
-    qf2 = QNetwork(envs, bounded=args.bounded)
+    qf1 = QNetwork(envs, bounded=True)
+    qf2 = QNetwork(envs, bounded=True)
 
     qf1.load_state_dict(torch.load(f"{save_dir}/qf1.pt"))
     qf2.load_state_dict(torch.load(f"{save_dir}/qf2.pt"))
@@ -29,7 +29,6 @@ def get_constrained_action(
     next_qf1_value = qf1.predict(state, action).item()
     next_qf2_value = qf2.predict(state, action).item()
     next_barrier_value = min(next_qf1_value, next_qf2_value)
-
     if next_barrier_value < safety_threshold:
         # Choose the action with the highest Q-value
         action = actor.predict(state)
@@ -73,7 +72,8 @@ if __name__ == "__main__":
     parser = add_constrain_train_args(parser)
     args = parser.parse_args()
 
-    constraint = load_constraint(args.constraint_dir, args)
+    if args.constrain:
+        constraint = load_constraint(args.constraint_dir, args)
 
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
     if args.track:
