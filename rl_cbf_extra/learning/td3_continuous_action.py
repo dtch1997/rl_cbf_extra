@@ -189,6 +189,13 @@ class QNetwork(nn.Module):
             x = torch.sigmoid(x) / (1 - self.gamma)
         return x
 
+    def predict(self, x: np.ndarray, a: np.ndarray, device: torch.device = "cpu"):
+        x = torch.from_numpy(x).to(torch.float32).to(device)
+        a = torch.from_numpy(a).to(torch.float32).to(device)
+        x = x.view(1, -1)
+        a = a.view(1, -1)
+        return self.forward(x, a).cpu().detach().numpy()[0]
+
 
 class Actor(nn.Module):
     def __init__(self, env):
@@ -217,6 +224,11 @@ class Actor(nn.Module):
         x = F.relu(self.fc2(x))
         x = torch.tanh(self.fc_mu(x))
         return x * self.action_scale + self.action_bias
+
+    def predict(self, x: np.ndarray, device: torch.device = "cpu"):
+        x = torch.from_numpy(x).to(torch.float32).to(device)
+        x = x.view(1, -1)
+        return self.forward(x).cpu().detach().numpy()[0]
 
 
 if __name__ == "__main__":
